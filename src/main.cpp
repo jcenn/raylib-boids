@@ -10,9 +10,12 @@ class Boid{
 public:
    Vector2 position;
    Vector2 direction;
-   float speed = 75.0;
+   
+   float speed = 85.0;
    float size = 20;
    float sigth_radius = 100;
+   float cone_of_vision = PI * 0.7;
+
    Boid(int screen_width, int screen_height){
       std::cout << "Initialized boid "<< std::endl;
       float randf = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
@@ -27,6 +30,10 @@ public:
       float y = randf * screen_height;
       position = Vector2(x, y);
    };
+   bool CheckVisibility(Vector2 point){
+      float dot_mapped = (-Vector2DotProduct(Vector2Normalize(point - this->position), this->direction) + 1.0) / 2.0; // [0, 1] 0 - both vectors face the same direction, 1 - opposite directions
+      return dot_mapped < cone_of_vision / PI; 
+   }
 };
 // Basic rules of Boids
 //    separation: steer to avoid crowding local flockmates
@@ -41,11 +48,12 @@ class BoidManager{
    const float alignment_factor = 0.8;
 
 private:
-   Vector2 GetLocalCenterOfMass(Vector2 point, float radius){
+   Vector2 GetLocalCenterOfMass(Boid& main_boid){
       Vector2 sum = Vector2(0, 0);
       size_t i = 0;
       for(Boid& boid : boids){
-         if(Vector2Length(boid.position - point) < radius) {
+         if(!main_boid.CheckVisibility(boid.position)) continue;
+         if(Vector2Length(boid.position - main_boid.position) < main_boid.sigth_radius) {
             sum = Vector2Add(sum, boid.position);
             i++;
          }
@@ -53,11 +61,12 @@ private:
       if(i == 0) return sum;
       return Vector2Scale(sum, 1.0/i);
    }
-   Vector2 GetLocalAlignment(Vector2 point, float radius){
+   Vector2 GetLocalAlignment(Boid& main_boid){
       Vector2 sum = Vector2(0, 0);
       size_t i = 0;
       for(Boid& boid : boids){
-         if(Vector2Length(boid.position - point) < radius) {
+         if(!main_boid.CheckVisibility(boid.position)) continue;
+         if(Vector2Length(boid.position - main_boid.position) < main_boid.sigth_radius) {
             sum = Vector2Add(sum, boid.direction);
             i++;
          }
@@ -65,13 +74,14 @@ private:
       if(i == 0) return sum;
       return Vector2Scale(sum, 1.0/i);
    }
-   Vector2 GetLocalSeparation(Vector2 point, float radius){
+   Vector2 GetLocalSeparation(Boid& main_boid){
       Vector2 sum = Vector2(0, 0);
       size_t i = 0;
       for(Boid& boid : boids){
-         float distance = Vector2Length(boid.position - point);
-         if(distance < radius && !FloatEquals(distance, 0.0)) {
-            sum = Vector2Add(sum, Vector2Scale(Vector2Normalize(point - boid.position), 1.0/distance));
+         if(!main_boid.CheckVisibility(boid.position)) continue;
+         float distance = Vector2Length(boid.position - main_boid.position);
+         if(distance < main_boid.sigth_radius && !FloatEquals(distance, 0.0)) {
+            sum = Vector2Add(sum, Vector2Scale(Vector2Normalize(main_boid.position - boid.position), 1.0/distance));
             i++;
          }
       }
@@ -89,14 +99,14 @@ public:
    }
    void Update(float delta){
       for(Boid& boid : boids){
-         Vector2 cohesion_dir = Vector2Normalize(Vector2Subtract(GetLocalCenterOfMass(boid.position, boid.sigth_radius), boid.position));
-         Vector2 alignment_dir = Vector2Normalize(GetLocalAlignment(boid.position, boid.sigth_radius));
-         Vector2 separation_dir = Vector2Normalize(GetLocalSeparation(boid.position, boid.sigth_radius));
+         Vector2 cohesion_dir = Vector2Normalize(Vector2Subtract(GetLocalCenterOfMass(boid), boid.position));
+         Vector2 alignment_dir = Vector2Normalize(GetLocalAlignment(boid));
+         Vector2 separation_dir = Vector2Normalize(GetLocalSeparation(boid));
          
          Vector2 new_dir = boid.direction;
          new_dir = Vector2Add(new_dir, cohesion_dir);
          if(!Vector2Equals(alignment_dir, Vector2Zero()))
-            new_dir = Vector2Add(new_dir, alignment_dir);
+             new_dir = Vector2Add(new_dir, alignment_dir);
          if(!Vector2Equals(separation_dir, Vector2Zero()))
             new_dir = Vector2Add(new_dir, separation_dir);
          //new_dir = Vector2Scale(new_dir, 1.0/3.0);

@@ -13,8 +13,10 @@ public:
    
    float speed = 85.0;
    float size = 20;
-   float sigth_radius = 100;
-   float cone_of_vision = PI * 0.7;
+
+   float sigth_radius = 120;
+   float separation_radius = 50;
+   float cone_of_vision = PI * 0.8;
 
    Boid(int screen_width, int screen_height){
       std::cout << "Initialized boid "<< std::endl;
@@ -44,8 +46,9 @@ class BoidManager{
    std::vector<Boid> boids;
    int screen_width, screen_height;
    const int wrap_padding = 10; // needed so boids don't "teleport" at the edges of the screen
-   const float cohesion_factor = 0.2;
-   const float alignment_factor = 0.8;
+   const float cohesion_factor = 0.8;
+   const float alignment_factor = 1.4;
+   const float separation_factor = 2.0;
 
 private:
    Vector2 GetLocalCenterOfMass(Boid& main_boid){
@@ -80,8 +83,8 @@ private:
       for(Boid& boid : boids){
          if(!main_boid.CheckVisibility(boid.position)) continue;
          float distance = Vector2Length(boid.position - main_boid.position);
-         if(distance < main_boid.sigth_radius && !FloatEquals(distance, 0.0)) {
-            sum = Vector2Add(sum, Vector2Scale(Vector2Normalize(main_boid.position - boid.position), 1.0/distance));
+         if(distance < main_boid.separation_radius && !FloatEquals(distance, 0.0)) {
+            sum = Vector2Add(sum, Vector2Scale(Vector2Normalize(main_boid.position - boid.position), 1 - distance/main_boid.separation_radius));
             i++;
          }
       }
@@ -104,11 +107,11 @@ public:
          Vector2 separation_dir = Vector2Normalize(GetLocalSeparation(boid));
          
          Vector2 new_dir = boid.direction;
-         new_dir = Vector2Add(new_dir, cohesion_dir);
+         new_dir = Vector2Add(new_dir, Vector2Scale(cohesion_dir, cohesion_factor));
          if(!Vector2Equals(alignment_dir, Vector2Zero()))
-             new_dir = Vector2Add(new_dir, alignment_dir);
+             new_dir = Vector2Add(new_dir, Vector2Scale(alignment_dir, alignment_factor));
          if(!Vector2Equals(separation_dir, Vector2Zero()))
-            new_dir = Vector2Add(new_dir, separation_dir);
+            new_dir = Vector2Add(new_dir, Vector2Scale(separation_dir, separation_factor));
          //new_dir = Vector2Scale(new_dir, 1.0/3.0);
 
          boid.direction = Vector2Normalize(Vector2Lerp(boid.direction, Vector2Normalize(new_dir), 0.05));
@@ -123,7 +126,8 @@ public:
    
    void Draw(){
       for(Boid& boid : boids){
-         //DrawCircleLinesV(boid.position, boid.sigth_radius, GREEN);
+         // DrawCircleLinesV(boid.position, boid.sigth_radius, GREEN);
+         // DrawCircleLinesV(boid.position, boid.separation_radius, RED);
          float draw_scale = boid.size;
          Vector2 scaled_dir = Vector2Scale(boid.direction, draw_scale);
          DrawTriangle(boid.position + scaled_dir, boid.position + Vector2Rotate(scaled_dir, -PI * 0.8), boid.position + Vector2Rotate(scaled_dir, PI * 0.8), DARKGRAY);

@@ -11,26 +11,30 @@
 #include "raygui.h"
 
 // Customizable Parameters
-const int screen_width = 200;
-const int screen_height = 200;
-
+// Visual settings
+const int screen_width = 1200;
+const int screen_height = 900;
+const int wrap_padding = 10; // needed so boids don't "teleport" at the edges of the screen
+const int text_size = 18;
+const unsigned char ui_alpha = 200;
+// Boid colors
 const float color_saturation = 0.8f;
 const float color_value = 0.7f;
 
-// higher number - smoother boid steering
+// higher number -> smoother boid steering
 const float smoothing = 0.02f;
 
 // Boid parameters
-float boid_size = 20;
 const float boid_speed = 85;
 const float sight_radius = 100;
 const float separation_radius = 50;
 const float cone_of_vision = PI * 0.8;
 
-const int wrap_padding = 10; // needed so boids don't "teleport" at the edges of the screen
+// Editable through UI
+float boid_size = 20;
 float cohesion_factor = 0.7f;
 float alignment_factor = 0.8f;
-float separation_factor = 1.4f;
+float separation_factor = 1.0f;
 
 Color random_color(){
    const float hue = static_cast<float>(rand()%360);
@@ -201,32 +205,42 @@ public:
    ~BoidManager() = default;
 };
 void draw_ui(){
-   // int GuiSlider(Rectangle bounds, const char *textLeft, const char *textRight, float *value, float minValue, float maxValue)
-   std::string size_text = "size: " + std::to_string((int)std::round(boid_size));
-   GuiSlider(Rectangle(0, 0, 200, 50), "", size_text.c_str(), &boid_size, 10.0, 50.0);
+   const int slider_width = 200;
+   const int slider_height = 30;
+   const int slider_margin = 5;
+   const int fps_width = 80;
+
+   DrawFPS(screen_width - fps_width, slider_margin);
+   char text[16] = "";
+   sprintf(text, "size: %.1f", boid_size);
+
+   GuiSlider(Rectangle(slider_margin, slider_margin, slider_width, slider_height), "", text, &boid_size, 10.0, 50.0);
    
-   std::string cohesion_text = "cohesion: " + std::to_string(cohesion_factor);
-   GuiSlider(Rectangle(0, 50, 200, 50), "", cohesion_text.c_str(), &cohesion_factor, 0.0f, 1.0f);
-   std::string alignment_text = "alignment: " + std::to_string(alignment_factor);
-   GuiSlider(Rectangle(0, 100, 200, 50), "", alignment_text.c_str(), &alignment_factor, 0.0f, 1.0f);
-   std::string separation_text = "separation: " + std::to_string(separation_factor);
-   GuiSlider(Rectangle(0, 150, 200, 50), "", separation_text.c_str(), &separation_factor, 0.0f, 1.0f);
+   sprintf(text, "cohesion: %.1f", cohesion_factor);
+   GuiSlider(Rectangle(slider_margin, slider_margin + slider_height + slider_margin, slider_width, slider_height), "", text, &cohesion_factor, 0.0f, 1.0f);
+   sprintf(text, "alignment: %.1f", alignment_factor);
+   GuiSlider(Rectangle(slider_margin, slider_margin + 2*(slider_height + slider_margin), slider_width, slider_height), "", text, &alignment_factor, 0.0f, 1.0f);
+   sprintf(text, "separation: %.1f", separation_factor);
+   GuiSlider(Rectangle(slider_margin, slider_margin + 3*(slider_height + slider_margin), slider_width, slider_height), "", text, &separation_factor, 0.0f, 1.0f);
    return;
 }
 
 int main()
 {
+
+
    srand(time(NULL));
-   const int screenWidth = 1200;
-   const int screenHeight = 900;
 
-   InitWindow(screenWidth, screenHeight, "Raylib Boids");
-
+   InitWindow(screen_width, screen_height, "Raylib Boids");
+   GuiSetStyle(DEFAULT, TEXT_SIZE, text_size);
+   Color background_color = GetColor(GuiGetStyle(SLIDER, BASE_COLOR_NORMAL));
+   background_color.a = ui_alpha;
+   GuiSetStyle(SLIDER, BASE_COLOR_NORMAL, ColorToInt(background_color)); // Reset scroll speed to default
 
    SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
    //--------------------------------------------------------------------------------------
    
-   BoidManager boid_manager(60, screenWidth, screenHeight);
+   BoidManager boid_manager(60, screen_width, screen_height);
 
     // Main game loop
    while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -245,7 +259,6 @@ int main()
       ClearBackground(RAYWHITE);
 
 
-      DrawFPS(0, 0);
 
       boid_manager.Draw();
 

@@ -18,11 +18,11 @@ file(GLOB SOURCES "src/*.cpp")
 add_executable(main ${SOURCES})
 
 # --- Raygui via pkg-config ---
-# find_package(PkgConfig REQUIRED)
-# pkg_check_modules(RAYGUI REQUIRED raygui)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(RAYGUI REQUIRED raygui)
 
-# target_include_directories(main PRIVATE ${RAYGUI_INCLUDE_DIRS})
-# target_link_libraries(main PRIVATE ${RAYGUI_LIBRARIES})
+target_include_directories(main PRIVATE ${RAYGUI_INCLUDE_DIRS})
+target_link_libraries(main PRIVATE ${RAYGUI_LIBRARIES})
 
 # Link Raylib to your project
 target_link_libraries(main raylib)
